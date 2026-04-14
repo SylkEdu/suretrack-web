@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Search, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Search, Calendar, TrendingUp, SlidersHorizontal, Eye, EyeOff } from 'lucide-react';
 import { AppData, Operation } from '../App';
 
 const BOOKMAKERS = [
@@ -35,6 +35,36 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    date: true,
+    time: true,
+    event: true,
+    houseA: true,
+    houseB: true,
+    oddA: true,
+    oddB: true,
+    betA: true,
+    betB: true,
+    total: true,
+    profitA: true,
+    profitB: true,
+    winner: true,
+    roi: true,
+    notes: true
+  });
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setIsColumnPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const calculateOpMetrics = (op: Operation) => {
     const totalBet = op.betA + op.betB;
@@ -83,6 +113,38 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
 
   const handleDeleteOperation = (id: string) => {
     updateData({ operations: data.operations.filter(op => op.id !== id) });
+  };
+
+  const handleUpdateWinner = (id: string, winner: 'A' | 'B' | '') => {
+    const newOperations = data.operations.map(op => {
+      if (op.id === id) {
+        return { ...op, winner };
+      }
+      return op;
+    });
+    updateData({ operations: newOperations });
+  };
+
+  const toggleColumn = (col: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
+  };
+
+  const columnLabels: Record<keyof typeof visibleColumns, string> = {
+    date: 'Data',
+    time: 'Hora',
+    event: 'Evento',
+    houseA: 'Casa A',
+    houseB: 'Casa B',
+    oddA: 'Odd A',
+    oddB: 'Odd B',
+    betA: 'Aposta A',
+    betB: 'Aposta B',
+    total: 'Total',
+    profitA: 'Profit A',
+    profitB: 'Profit B',
+    winner: 'Vencedor',
+    roi: 'ROI',
+    notes: 'Notas'
   };
 
   const handleSort = (field: keyof Operation) => {
@@ -182,6 +244,51 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
               <option value="12">Dezembro</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          </div>
+
+          <div className="relative" ref={pickerRef}>
+            <button
+              onClick={() => setIsColumnPickerOpen(!isColumnPickerOpen)}
+              className={`px-4 py-3 rounded-xl border transition-all flex items-center gap-2 group ${
+                isColumnPickerOpen 
+                ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' 
+                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="text-sm font-medium">Colunas</span>
+            </button>
+
+            <AnimatePresence>
+              {isColumnPickerOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-2 w-64 bg-[#1e293b] border border-white/10 rounded-2xl shadow-2xl p-4 z-50 backdrop-blur-xl"
+                >
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 px-2">Visibilidade das Colunas</div>
+                  <div className="grid grid-cols-1 gap-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {(Object.keys(visibleColumns) as Array<keyof typeof visibleColumns>).map((col) => (
+                      <button
+                        key={col}
+                        onClick={() => toggleColumn(col)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                          visibleColumns[col] ? 'bg-indigo-500/10 text-white' : 'text-slate-500 hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="text-sm font-medium">{columnLabels[col]}</span>
+                        {visibleColumns[col] ? (
+                          <Eye className="w-4 h-4 text-indigo-400" />
+                        ) : (
+                          <EyeOff className="w-4 h-4" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button
@@ -437,7 +544,7 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
                     { key: 'oddB', label: 'Odd B', width: '80px' },
                     { key: 'betA', label: 'Aposta A', width: '130px' },
                     { key: 'betB', label: 'Aposta B', width: '130px' }
-                  ].map(({ key, label, width }) => (
+                  ].filter(col => visibleColumns[col.key as keyof typeof visibleColumns]).map(({ key, label, width }) => (
                     <th
                       key={key}
                       onClick={() => handleSort(key as keyof Operation)}
@@ -450,12 +557,12 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
                       </div>
                     </th>
                   ))}
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit A</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit B</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Vencedor</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">ROI %</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Notas</th>
+                  {visibleColumns.total && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total</th>}
+                  {visibleColumns.profitA && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit A</th>}
+                  {visibleColumns.profitB && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit B</th>}
+                  {visibleColumns.winner && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Vencedor</th>}
+                  {visibleColumns.roi && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">ROI %</th>}
+                  {visibleColumns.notes && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Notas</th>}
                   <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Ações</th>
                 </tr>
               </thead>
@@ -473,83 +580,120 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
                       transition={{ delay: index * 0.03 }}
                       className="hover:bg-indigo-500/5 transition-all group/row"
                     >
-                      <td className="px-6 py-5 text-slate-400 text-sm font-medium">{new Date(op.date).toLocaleDateString('pt-BR')}</td>
-                      <td className="px-6 py-5 text-slate-500 text-sm">{op.time}</td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-white text-sm font-bold tracking-tight">{op.event}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-md text-xs font-bold border border-blue-500/10">
-                          {op.houseA}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-md text-xs font-bold border border-purple-500/10">
-                          {op.houseB}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {op.oddA.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        {op.oddB.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {op.betA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {op.betB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-5 text-white text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {metrics.totalBet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td
-                        className={`px-6 py-5 text-sm font-bold ${
-                          metrics.profitA >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                      >
-                        R$ {metrics.profitA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td
-                        className={`px-6 py-5 text-sm font-bold ${
-                          metrics.profitB >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                      >
-                        R$ {metrics.profitB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-5">
-                        {op.winner ? (
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                            op.winner === 'A' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20' : 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20'
-                          }`}>
-                            <Check className="w-3 h-3" />
-                            {op.winner === 'A' ? op.houseA : op.houseB}
+                      {visibleColumns.date && <td className="px-6 py-5 text-slate-400 text-sm font-medium">{new Date(op.date).toLocaleDateString('pt-BR')}</td>}
+                      {visibleColumns.time && <td className="px-6 py-5 text-slate-500 text-sm">{op.time}</td>}
+                      {visibleColumns.event && (
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-white text-sm font-bold tracking-tight">{op.event}</span>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-500/20">
-                            Pendente
-                          </div>
-                        )}
-                      </td>
-                      <td
-                        className={`px-6 py-5 text-sm font-black ${
-                          metrics.roi >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                        style={{ fontFamily: 'JetBrains Mono, monospace' }}
-                      >
-                        {op.winner ? `${metrics.roi >= 0 ? '+' : ''}${metrics.roi.toFixed(2)}%` : '-'}
-                      </td>
-                      <td className="px-6 py-5">
-                         <div className="max-w-[150px] overflow-hidden">
-                           <p className="text-slate-500 text-xs italic truncate" title={op.notes}>
-                             {op.notes || '—'}
-                           </p>
-                         </div>
-                      </td>
+                        </td>
+                      )}
+                      {visibleColumns.houseA && (
+                        <td className="px-6 py-5">
+                          <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-md text-xs font-bold border border-blue-500/10">
+                            {op.houseA}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.houseB && (
+                        <td className="px-6 py-5">
+                          <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-md text-xs font-bold border border-purple-500/10">
+                            {op.houseB}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.oddA && (
+                        <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {op.oddA.toFixed(2)}
+                        </td>
+                      )}
+                      {visibleColumns.oddB && (
+                        <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          {op.oddB.toFixed(2)}
+                        </td>
+                      )}
+                      {visibleColumns.betA && (
+                        <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          R$ {op.betA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.betB && (
+                        <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          R$ {op.betB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.total && (
+                        <td className="px-6 py-5 text-white text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          R$ {metrics.totalBet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.profitA && (
+                        <td
+                          className={`px-6 py-5 text-sm font-bold ${
+                            metrics.profitA >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        >
+                          R$ {metrics.profitA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.profitB && (
+                        <td
+                          className={`px-6 py-5 text-sm font-bold ${
+                            metrics.profitB >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        >
+                          R$ {metrics.profitB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
+                      {visibleColumns.winner && (
+                        <td className="px-6 py-5">
+                          <button
+                            onClick={() => {
+                              const nextWinner = op.winner === '' ? 'A' : op.winner === 'A' ? 'B' : '';
+                              handleUpdateWinner(op.id, nextWinner);
+                            }}
+                            className="group/winner relative"
+                          >
+                            {op.winner ? (
+                              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                op.winner === 'A' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 hover:bg-blue-500/20' : 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20 hover:bg-purple-500/20'
+                              }`}>
+                                <Check className="w-3 h-3" />
+                                {op.winner === 'A' ? op.houseA : op.houseB}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-500/20 hover:bg-slate-500/20 hover:text-slate-400 transition-all">
+                                Pendente
+                              </div>
+                            )}
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-white text-[#0f172a] text-[10px] font-bold rounded opacity-0 group-hover/winner:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl">
+                              Clique para alterar
+                            </div>
+                          </button>
+                        </td>
+                      )}
+                      {visibleColumns.roi && (
+                        <td
+                          className={`px-6 py-5 text-sm font-black ${
+                            metrics.roi >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        >
+                          {op.winner ? `${metrics.roi >= 0 ? '+' : ''}${metrics.roi.toFixed(2)}%` : '-'}
+                        </td>
+                      )}
+                      {visibleColumns.notes && (
+                        <td className="px-6 py-5">
+                           <div className="max-w-[150px] overflow-hidden">
+                             <p className="text-slate-500 text-xs italic truncate" title={op.notes}>
+                               {op.notes || '—'}
+                             </p>
+                           </div>
+                        </td>
+                      )}
                       <td className="px-6 py-5">
                         <button
                           onClick={() => handleDeleteOperation(op.id)}

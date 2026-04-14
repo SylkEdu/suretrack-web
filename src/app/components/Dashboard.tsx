@@ -9,7 +9,10 @@ import {
   Target,
   ArrowUp,
   ArrowDown,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Calendar,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import {
   LineChart,
@@ -32,21 +35,57 @@ interface DashboardProps {
 export default function Dashboard({ data, updateData }: DashboardProps) {
   const [isEditingBankroll, setIsEditingBankroll] = useState(false);
   const [bankrollInput, setBankrollInput] = useState(data.initialBankroll.toString());
+  const [selectedMonth, setSelectedMonth] = useState(''); // '' means All Months
+
+  const MONTHS = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' },
+  ];
 
   // Calculate metrics
   const calculateMetrics = () => {
-    const totalBets = data.operations.reduce((sum, op) => sum + op.betA + op.betB, 0);
-    const totalProfits = data.operations.reduce((sum, op) => {
+    // Filter operations and manuseios by selected month
+    const filteredOps = selectedMonth 
+      ? data.operations.filter(op => op.date.split('-')[1] === selectedMonth)
+      : data.operations;
+    
+    const filteredManuseios = selectedMonth
+      ? data.manuseios.filter(m => m.date.split('-')[1] === selectedMonth)
+      : data.manuseios;
+
+    const totalBets = filteredOps.reduce((sum, op) => sum + op.betA + op.betB, 0);
+    const totalProfits = filteredOps.reduce((sum, op) => {
       if (!op.winner) return sum;
       const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
       const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
       return sum + (op.winner === 'A' ? profitA : profitB);
     }, 0);
 
-    const totalManuseios = data.manuseios.reduce((sum, m) => sum + m.value, 0);
-    const netProfit = totalProfits; // Lucro líquido puramente das operações
-    const currentBankroll = data.initialBankroll + netProfit + totalManuseios; // Banca = Inicial + Lucro das Apostas + Aportes/Saques
-    const operationsWithWinner = data.operations.filter(op => op.winner).length;
+    const totalManuseios = filteredManuseios.reduce((sum, m) => sum + m.value, 0);
+    
+    // For "Global" values, we still need the total across all time
+    const allTimeProfits = data.operations.reduce((sum, op) => {
+      if (!op.winner) return sum;
+      const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
+      const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
+      return sum + (op.winner === 'A' ? profitA : profitB);
+    }, 0);
+    const allTimeManuseios = data.manuseios.reduce((sum, m) => sum + m.value, 0);
+
+    const netProfit = totalProfits; 
+    const currentBankroll = data.initialBankroll + allTimeProfits + allTimeManuseios; 
+    
+    const operationsWithWinner = filteredOps.filter(op => op.winner).length;
     const avgProfitPerOperation = operationsWithWinner > 0 ? totalProfits / operationsWithWinner : 0;
     const roi = totalBets > 0 ? (totalProfits / totalBets) * 100 : 0;
 
@@ -58,7 +97,7 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       netProfit,
       avgProfitPerOperation,
       roi,
-      totalOperations: data.operations.length,
+      totalOperations: filteredOps.length,
       completedOperations: operationsWithWinner
     };
   };
@@ -67,44 +106,64 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
 
   // Calculate chart data (evolution over time)
   const getChartData = () => {
-    let runningBalance = data.initialBankroll;
-    const points: { date: string; balance: number; profit: number }[] = [
-      { date: 'Início', balance: data.initialBankroll, profit: 0 }
-    ];
-
     // Combine operations and costs, sort by date
-    const events: Array<{ date: string; type: 'operation' | 'cost'; value: number }> = [];
+    const allEvents: Array<{ date: string; value: number }> = [];
 
     data.operations.forEach(op => {
       if (op.winner) {
         const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
         const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
         const profit = op.winner === 'A' ? profitA : profitB;
-        events.push({ date: op.date, type: 'operation', value: profit });
+        allEvents.push({ date: op.date, value: profit });
       }
     });
 
     data.manuseios.forEach(m => {
-      events.push({ date: m.date, type: 'cost', value: m.value });
+      allEvents.push({ date: m.date, value: m.value });
     });
 
-    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    allEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    events.forEach(event => {
-      runningBalance += event.value;
-      const dateObj = new Date(event.date);
-      const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
-      points.push({
-        date: formattedDate,
-        balance: runningBalance,
-        profit: event.value
+    let runningBalance = data.initialBankroll;
+    
+    // If month is selected, find the starting balance for that month
+    if (selectedMonth) {
+      const eventsBeforeMonth = allEvents.filter(e => e.date.split('-')[1] < selectedMonth);
+      const startingBalanceForMonth = data.initialBankroll + eventsBeforeMonth.reduce((sum, e) => sum + e.value, 0);
+      
+      const monEvents = allEvents.filter(e => e.date.split('-')[1] === selectedMonth);
+      
+      const points = [{ date: 'Início do Mês', balance: startingBalanceForMonth, profit: 0 }];
+      let currentBal = startingBalanceForMonth;
+      
+      monEvents.forEach(e => {
+        currentBal += e.value;
+        const d = new Date(e.date);
+        points.push({
+          date: `${d.getDate()}/${d.getMonth() + 1}`,
+          balance: currentBal,
+          profit: e.value
+        });
       });
-    });
-
-    return points.length > 1 ? points : [
-      { date: 'Início', balance: data.initialBankroll, profit: 0 },
-      { date: 'Atual', balance: data.initialBankroll, profit: 0 }
-    ];
+      
+      return points.length > 1 ? points : [
+        { date: 'Sem Dados', balance: startingBalanceForMonth, profit: 0 },
+        { date: '-', balance: startingBalanceForMonth, profit: 0 }
+      ];
+    } else {
+      // All time view
+      const points = [{ date: 'Início', balance: data.initialBankroll, profit: 0 }];
+      allEvents.forEach(e => {
+        runningBalance += e.value;
+        const d = new Date(e.date);
+        points.push({
+          date: `${d.getDate()}/${d.getMonth() + 1}`,
+          balance: runningBalance,
+          profit: e.value
+        });
+      });
+      return points;
+    }
   };
 
   const chartData = getChartData();
@@ -165,6 +224,38 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Header with Month Filter */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0f172a]/40 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-xl">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            Visão Geral
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">
+            {selectedMonth ? `Resultados de ${MONTHS.find(m => m.value === selectedMonth)?.label}` : 'Desempenho acumulado de todo o período'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative group/filter">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-purple-500/50 rounded-xl blur opacity-0 group-focus-within/filter:opacity-100 transition duration-500" />
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="pl-11 pr-10 py-2.5 bg-slate-900 border border-white/10 rounded-xl text-sm text-white appearance-none focus:outline-none focus:border-indigo-500/50 transition-all font-medium min-w-[180px] cursor-pointer"
+              >
+                <option value="">Todos os Meses</option>
+                {MONTHS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((card, index) => {
