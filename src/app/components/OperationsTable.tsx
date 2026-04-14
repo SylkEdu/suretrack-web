@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
 import { AppData, Operation } from '../App';
+
+const BOOKMAKERS = [
+  'Bet-Bra TB', 'Bet7K', 'BetBoom', 'BetEsporte', 'Betano', 'Betfair SB', 
+  'Betfast', 'Betnacional', 'Blaze', 'EstrelaBet', 'F12Bet', 'Luvabet', 
+  'Novibet', 'Pinnacle', 'Rivalo', 'Sportingbet', 'Sportybet', 'Stake', 
+  'Superbet', 'Vaidebet', 'Vbet', 'Vivasorte'
+];
 
 interface OperationsTableProps {
   data: AppData;
@@ -26,6 +33,8 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
     winner: '',
     notes: ''
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
 
   const calculateOpMetrics = (op: Operation) => {
     const totalBet = op.betA + op.betB;
@@ -85,7 +94,20 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
     }
   };
 
-  const sortedOperations = [...data.operations].sort((a, b) => {
+  const filteredOperations = data.operations.filter(op => {
+    const matchesSearch = !searchQuery || 
+                          op.event.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          op.houseA.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          op.houseB.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (op.notes || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const month = op.date.split('-')[1];
+    const matchesMonth = selectedMonth ? month === selectedMonth : true;
+
+    return matchesSearch && matchesMonth;
+  });
+
+  const sortedOperations = [...filteredOperations].sort((a, b) => {
     const aVal = a[sortField];
     const bVal = b[sortField];
     const multiplier = sortDirection === 'asc' ? 1 : -1;
@@ -108,23 +130,61 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 bg-[#0f172a]/50 p-6 rounded-xl border border-white/10 shadow-lg">
         <div>
           <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
             Operações de Arbitragem
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            {data.operations.length} operações registradas
+            {filteredOperations.length} operações exibidas
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAdding(true)}
-          className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nova Operação
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          {/* Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar evento, casa..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            />
+          </div>
+
+          {/* Month Filter */}
+          <div className="relative w-full sm:w-auto min-w-[140px]">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full pl-9 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white appearance-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
+            >
+              <option value="">Mês: Todos</option>
+              <option value="01">Janeiro</option>
+              <option value="02">Fevereiro</option>
+              <option value="03">Março</option>
+              <option value="04">Abril</option>
+              <option value="05">Maio</option>
+              <option value="06">Junho</option>
+              <option value="07">Julho</option>
+              <option value="08">Agosto</option>
+              <option value="09">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => setIsAdding(true)}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center justify-center gap-2 shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Operação
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -195,22 +255,28 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        placeholder="Bet365"
-                        value={newOp.houseA}
+                      <select
+                        value={newOp.houseA || ''}
                         onChange={(e) => setNewOp({ ...newOp, houseA: e.target.value })}
                         className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
+                      >
+                        <option value="" disabled>Selecione...</option>
+                        {BOOKMAKERS.map(house => (
+                          <option key={house} value={house}>{house}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        placeholder="Betfair"
-                        value={newOp.houseB}
+                      <select
+                        value={newOp.houseB || ''}
                         onChange={(e) => setNewOp({ ...newOp, houseB: e.target.value })}
                         className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
+                      >
+                        <option value="" disabled>Selecione...</option>
+                        {BOOKMAKERS.map(house => (
+                          <option key={house} value={house}>{house}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3">
                       <input

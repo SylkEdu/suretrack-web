@@ -9,7 +9,8 @@ import {
   Plus,
   Trash2,
   Filter,
-  Download
+  Download,
+  ArrowRightLeft
 } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
 import Dashboard from './components/Dashboard';
@@ -38,7 +39,7 @@ export type Operation = {
   notes?: string;
 };
 
-export type Cost = {
+export type Manuseio = {
   id: string;
   date: string;
   description: string;
@@ -48,16 +49,16 @@ export type Cost = {
 export type AppData = {
   initialBankroll: number;
   operations: Operation[];
-  costs: Cost[];
+  manuseios: Manuseio[];
 };
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'operations' | 'costs'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'operations' | 'manuseios'>('dashboard');
   const [data, setData] = useState<AppData>({
     initialBankroll: 10000,
     operations: [],
-    costs: []
+    manuseios: []
   });
 
   // Load data from localStorage on mount
@@ -70,7 +71,15 @@ export default function App() {
     }
 
     if (storedData) {
-      setData(JSON.parse(storedData));
+      const parsedData = JSON.parse(storedData);
+      
+      // Migration: Rename 'costs' to 'manuseios' if it exists in old data
+      if (parsedData.costs && !parsedData.manuseios) {
+        parsedData.manuseios = parsedData.costs;
+        delete parsedData.costs;
+      }
+      
+      setData(parsedData);
     }
   }, []);
 
@@ -109,7 +118,7 @@ export default function App() {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'operations', label: 'Operações', icon: TrendingUp },
-    { id: 'costs', label: 'Custos', icon: TrendingDown }
+    { id: 'manuseios', label: 'Manuseio', icon: ArrowRightLeft }
   ] as const;
 
   return (
@@ -214,9 +223,9 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeTab === 'costs' && (
+          {activeTab === 'manuseios' && (
             <motion.div
-              key="costs"
+              key="manuseios"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}

@@ -8,7 +8,8 @@ import {
   BarChart3,
   Target,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ArrowRightLeft
 } from 'lucide-react';
 import {
   LineChart,
@@ -42,9 +43,9 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       return sum + (op.winner === 'A' ? profitA : profitB);
     }, 0);
 
-    const totalCosts = data.costs.reduce((sum, cost) => sum + cost.value, 0);
-    const netProfit = totalProfits - totalCosts;
-    const currentBankroll = data.initialBankroll + netProfit;
+    const totalManuseios = data.manuseios.reduce((sum, m) => sum + m.value, 0);
+    const netProfit = totalProfits; // Lucro líquido puramente das operações
+    const currentBankroll = data.initialBankroll + netProfit + totalManuseios; // Banca = Inicial + Lucro das Apostas + Aportes/Saques
     const operationsWithWinner = data.operations.filter(op => op.winner).length;
     const avgProfitPerOperation = operationsWithWinner > 0 ? totalProfits / operationsWithWinner : 0;
     const roi = totalBets > 0 ? (totalProfits / totalBets) * 100 : 0;
@@ -53,7 +54,7 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       initialBankroll: data.initialBankroll,
       currentBankroll,
       totalProfits,
-      totalCosts,
+      totalManuseios,
       netProfit,
       avgProfitPerOperation,
       roi,
@@ -83,8 +84,8 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       }
     });
 
-    data.costs.forEach(cost => {
-      events.push({ date: cost.date, type: 'cost', value: -cost.value });
+    data.manuseios.forEach(m => {
+      events.push({ date: m.date, type: 'cost', value: m.value });
     });
 
     events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -139,11 +140,12 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       positive: true
     },
     {
-      label: 'Total de Gastos',
-      value: metrics.totalCosts,
-      icon: TrendingDown,
-      color: 'from-red-500 to-rose-500',
-      negative: true
+      label: 'Saldo de Manuseio (Aportes/Saídas)',
+      value: metrics.totalManuseios,
+      icon: ArrowRightLeft,
+      color: metrics.totalManuseios >= 0 ? 'from-emerald-500 to-green-500' : 'from-red-500 to-rose-500',
+      positive: metrics.totalManuseios >= 0,
+      negative: metrics.totalManuseios < 0
     },
     {
       label: 'Saldo Líquido',
@@ -176,12 +178,12 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="relative group"
+              className="relative group h-full"
             >
               {/* Glow effect on hover */}
               <div className={`absolute -inset-0.5 bg-gradient-to-r ${card.color} rounded-xl blur opacity-0 group-hover:opacity-30 transition duration-300`} />
 
-              <div className="relative bg-[#0f172a]/50 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-white/20 transition-all">
+              <div className="relative bg-[#0f172a]/50 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-white/20 transition-all h-full flex flex-col">
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center shadow-lg`}>
                     <Icon className="w-5 h-5 text-white" />
@@ -228,9 +230,11 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
                   </div>
                 )}
 
-                {card.subtitle && (
-                  <p className="text-xs text-slate-500 mt-1">{card.subtitle}</p>
-                )}
+                <div className="min-h-[20px] mt-1">
+                  {card.subtitle && (
+                    <p className="text-xs text-slate-500">{card.subtitle}</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Check, X, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
-import { AppData, Cost } from '../App';
+import { Plus, Trash2, Check, X, ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { AppData, Manuseio } from '../App';
 
 interface CostsTableProps {
   data: AppData;
@@ -10,38 +10,38 @@ interface CostsTableProps {
 
 export default function CostsTable({ data, updateData }: CostsTableProps) {
   const [isAdding, setIsAdding] = useState(false);
-  const [sortField, setSortField] = useState<keyof Cost>('date');
+  const [sortField, setSortField] = useState<keyof Manuseio>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [newCost, setNewCost] = useState<Partial<Cost>>({
+  const [newManuseio, setNewManuseio] = useState<Partial<Manuseio>>({
     date: new Date().toISOString().split('T')[0],
     description: '',
     value: 0
   });
 
-  const handleAddCost = () => {
-    if (!newCost.description || !newCost.value) return;
+  const handleAddManuseio = () => {
+    if (!newManuseio.description || !newManuseio.value) return;
 
-    const cost: Cost = {
+    const manuseio: Manuseio = {
       id: Date.now().toString(),
-      date: newCost.date!,
-      description: newCost.description!,
-      value: Number(newCost.value) || 0
+      date: newManuseio.date!,
+      description: newManuseio.description!,
+      value: Number(newManuseio.value) || 0
     };
 
-    updateData({ costs: [...data.costs, cost] });
+    updateData({ manuseios: [...data.manuseios, manuseio] });
     setIsAdding(false);
-    setNewCost({
+    setNewManuseio({
       date: new Date().toISOString().split('T')[0],
       description: '',
       value: 0
     });
   };
 
-  const handleDeleteCost = (id: string) => {
-    updateData({ costs: data.costs.filter(cost => cost.id !== id) });
+  const handleDeleteManuseio = (id: string) => {
+    updateData({ manuseios: data.manuseios.filter(m => m.id !== id) });
   };
 
-  const handleSort = (field: keyof Cost) => {
+  const handleSort = (field: keyof Manuseio) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -50,7 +50,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
     }
   };
 
-  const sortedCosts = [...data.costs].sort((a, b) => {
+  const sortedManuseios = [...data.manuseios].sort((a, b) => {
     const aVal = a[sortField];
     const bVal = b[sortField];
     const multiplier = sortDirection === 'asc' ? 1 : -1;
@@ -61,9 +61,9 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
     return ((aVal as number) - (bVal as number)) * multiplier;
   });
 
-  const totalCosts = data.costs.reduce((sum, cost) => sum + cost.value, 0);
+  const totalManuseios = data.manuseios.reduce((sum, m) => sum + m.value, 0);
 
-  const SortIcon = ({ field }: { field: keyof Cost }) => {
+  const SortIcon = ({ field }: { field: keyof Manuseio }) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? (
       <ChevronUp className="w-3 h-3" />
@@ -78,19 +78,19 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Saídas e Custos
+            Manuseios da Banca (Aportes e Saques)
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            {data.costs.length} registros • Total: R$ {totalCosts.toFixed(2)}
+            {data.manuseios.length} registros • Saldo de Manuseio: R$ {totalManuseios.toFixed(2)}
           </p>
         </div>
 
         <button
           onClick={() => setIsAdding(true)}
-          className="px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-red-500/50 transition-all flex items-center gap-2"
+          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Novo Gasto
+          Novo Manuseio
         </button>
       </div>
 
@@ -100,20 +100,16 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
         animate={{ opacity: 1, y: 0 }}
         className="relative group"
       >
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-rose-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300" />
-        <div className="relative bg-[#0f172a]/50 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-400 mb-1">Total de Gastos</p>
-              <div className="text-4xl font-bold text-red-400" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                R$ {totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <p className="text-sm text-slate-400 mb-1">Total Movimentado (Saldo de Manuseio)</p>
+              <div className={`text-4xl font-bold ${totalManuseios >= 0 ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                {totalManuseios >= 0 ? '+' : ''}R$ {totalManuseios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                Média por gasto: R$ {data.costs.length > 0 ? (totalCosts / data.costs.length).toFixed(2) : '0.00'}
+                Média por manuseio: R$ {data.manuseios.length > 0 ? (totalManuseios / data.manuseios.length).toFixed(2) : '0.00'}
               </p>
             </div>
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500/20 to-rose-500/20 flex items-center justify-center">
-              <TrendingDown className="w-8 h-8 text-red-400" />
+            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${totalManuseios >= 0 ? 'from-emerald-500/20 to-green-500/20' : 'from-red-500/20 to-rose-500/20'} flex items-center justify-center`}>
+              <ArrowRightLeft className={`w-8 h-8 ${totalManuseios >= 0 ? 'text-emerald-400' : 'text-red-400'}`} />
             </div>
           </div>
         </div>
@@ -141,7 +137,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors w-1/2"
                   >
                     <div className="flex items-center gap-1">
-                      Descrição do Gasto
+                      Descrição do Manuseio
                       <SortIcon field="description" />
                     </div>
                   </th>
@@ -165,18 +161,18 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     <td className="px-6 py-4">
                       <input
                         type="date"
-                        value={newCost.date}
-                        onChange={(e) => setNewCost({ ...newCost, date: e.target.value })}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-red-500"
+                        value={newManuseio.date}
+                        onChange={(e) => setNewManuseio({ ...newManuseio, date: e.target.value })}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </td>
                     <td className="px-6 py-4">
                       <input
                         type="text"
-                        placeholder="Ex: Comissão da casa, Taxa de saque, etc."
-                        value={newCost.description}
-                        onChange={(e) => setNewCost({ ...newCost, description: e.target.value })}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-red-500"
+                        placeholder="Ex: Aporte (+), Retirada (-), Taxa..."
+                        value={newManuseio.description}
+                        onChange={(e) => setNewManuseio({ ...newManuseio, description: e.target.value })}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-indigo-500"
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -185,10 +181,10 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                         <input
                           type="number"
                           step="0.01"
-                          placeholder="0.00"
-                          value={newCost.value || ''}
-                          onChange={(e) => setNewCost({ ...newCost, value: parseFloat(e.target.value) || 0 })}
-                          className="flex-1 px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-red-500"
+                          placeholder="+100 ou -100"
+                          value={newManuseio.value || ''}
+                          onChange={(e) => setNewManuseio({ ...newManuseio, value: parseFloat(e.target.value) || 0 })}
+                          className="flex-1 px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-indigo-500"
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
                         />
                       </div>
@@ -196,7 +192,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
                         <button
-                          onClick={handleAddCost}
+                          onClick={handleAddManuseio}
                           className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
                         >
                           <Check className="w-4 h-4" />
@@ -212,16 +208,16 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                   </tr>
                 )}
 
-                {sortedCosts.map((cost, index) => (
+                {sortedManuseios.map((m, index) => (
                   <motion.tr
-                    key={cost.id}
+                    key={m.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.02 }}
                     className="hover:bg-white/5 transition-colors group"
                   >
                     <td className="px-6 py-4 text-slate-300 text-sm">
-                      {new Date(cost.date).toLocaleDateString('pt-BR', {
+                      {new Date(m.date).toLocaleDateString('pt-BR', {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric'
@@ -229,25 +225,25 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 opacity-50" />
-                        <span className="text-white text-sm font-medium">{cost.description}</span>
+                        <div className={`w-2 h-2 rounded-full ${m.value >= 0 ? 'bg-emerald-500' : 'bg-red-500'} mt-1.5 opacity-50`} />
+                        <span className="text-white text-sm font-medium">{m.description}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <div className={`px-3 py-1.5 ${m.value >= 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'} border rounded-lg`}>
                           <span
-                            className="text-red-400 font-bold text-sm"
+                            className={`${m.value >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold text-sm`}
                             style={{ fontFamily: 'JetBrains Mono, monospace' }}
                           >
-                            - R$ {cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {m.value >= 0 ? '+' : ''} R$ {m.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleDeleteCost(cost.id)}
+                        onClick={() => handleDeleteManuseio(m.id)}
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -256,16 +252,16 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                   </motion.tr>
                 ))}
 
-                {data.costs.length === 0 && !isAdding && (
+                {data.manuseios.length === 0 && !isAdding && (
                   <tr>
                     <td colSpan={4} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                          <TrendingDown className="w-8 h-8 text-slate-600" />
+                          <ArrowRightLeft className="w-8 h-8 text-slate-600" />
                         </div>
                         <div>
-                          <p className="text-slate-400 font-medium mb-1">Nenhum gasto registrado</p>
-                          <p className="text-slate-500 text-sm">Clique em "Novo Gasto" para adicionar um custo</p>
+                          <p className="text-slate-400 font-medium mb-1">Nenhum manuseio registrado</p>
+                          <p className="text-slate-500 text-sm">Clique em "Novo Manuseio" para registrar um aporte ou saque</p>
                         </div>
                       </div>
                     </td>
@@ -277,8 +273,8 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
         </div>
       </div>
 
-      {/* Recent costs breakdown */}
-      {data.costs.length > 0 && (
+      {/* Recent manuseios breakdown */}
+      {data.manuseios.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -288,7 +284,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
           {[
             {
               label: 'Último 7 dias',
-              value: data.costs
+              value: data.manuseios
                 .filter(c => {
                   const date = new Date(c.date);
                   const weekAgo = new Date();
@@ -299,7 +295,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
             },
             {
               label: 'Último 30 dias',
-              value: data.costs
+              value: data.manuseios
                 .filter(c => {
                   const date = new Date(c.date);
                   const monthAgo = new Date();
@@ -309,8 +305,8 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                 .reduce((sum, c) => sum + c.value, 0)
             },
             {
-              label: 'Gasto Médio',
-              value: totalCosts / data.costs.length
+              label: 'Média por manuseio',
+              value: totalManuseios / data.manuseios.length
             }
           ].map((stat, index) => (
             <motion.div
@@ -322,10 +318,10 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
             >
               <p className="text-xs text-slate-400 mb-2">{stat.label}</p>
               <p
-                className="text-xl font-bold text-red-400"
+                className={`text-xl font-bold ${stat.value >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
                 style={{ fontFamily: 'JetBrains Mono, monospace' }}
               >
-                R$ {stat.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                 {stat.value >= 0 ? '+' : ''}R$ {stat.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </motion.div>
           ))}
