@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Edit2, Check, X, ChevronDown, ChevronUp, Search, Calendar, TrendingUp } from 'lucide-react';
 import { AppData, Operation } from '../App';
 
 const BOOKMAKERS = [
@@ -130,38 +130,44 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 bg-[#0f172a]/50 p-6 rounded-xl border border-white/10 shadow-lg">
-        <div>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Operações de Arbitragem
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 bg-[#0f172a]/40 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-50" />
+        <div className="relative">
+          <h2 className="text-3xl font-black text-white tracking-tight flex items-center gap-3" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            Operações
+            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest">Arbitragem</span>
           </h2>
-          <p className="text-sm text-slate-400 mt-1">
-            {filteredOperations.length} operações exibidas
+          <p className="text-sm text-slate-400 mt-2 font-medium flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            {filteredOperations.length} registros encontrados no sistema
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto relative">
           {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Buscar evento, casa..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-            />
+          <div className="relative w-full sm:w-72 group/search">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-purple-500/50 rounded-xl blur opacity-0 group-focus-within/search:opacity-100 transition duration-500" />
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within/search:text-indigo-400 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Buscar evento ou casa..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all"
+              />
+            </div>
           </div>
 
           {/* Month Filter */}
-          <div className="relative w-full sm:w-auto min-w-[140px]">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative w-full sm:w-auto min-w-[160px]">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full pl-9 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white appearance-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer"
+              className="w-full pl-11 pr-10 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-sm text-white appearance-none focus:outline-none focus:border-indigo-500/50 transition-all cursor-pointer font-medium"
             >
-              <option value="">Mês: Todos</option>
+              <option value="">Todos os Meses</option>
               <option value="01">Janeiro</option>
               <option value="02">Fevereiro</option>
               <option value="03">Março</option>
@@ -175,271 +181,379 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
               <option value="11">Novembro</option>
               <option value="12">Dezembro</option>
             </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           </div>
 
           <button
             onClick={() => setIsAdding(true)}
-            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all flex items-center justify-center gap-2 shrink-0"
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 shrink-0 active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            Nova Operação
+            <Plus className="w-5 h-5" />
+            Nova Entrada
           </button>
         </div>
       </div>
+ 
+       {/* Add Operation Form (Expandable Card) */}
+       <AnimatePresence>
+         {isAdding && (
+           <motion.div
+             initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+             animate={{ height: 'auto', opacity: 1, marginBottom: 24 }}
+             exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+             transition={{ duration: 0.4, ease: "circOut" }}
+             className="overflow-hidden"
+           >
+             <div className="relative group">
+               <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500" />
+               <div className="relative bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+                 <div className="flex items-center justify-between mb-8">
+                   <div className="flex items-center gap-3">
+                     <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
+                       <Plus className="w-6 h-6 text-indigo-400" />
+                     </div>
+                     <div>
+                       <h3 className="text-xl font-bold text-white tracking-tight">Nova Operação de Arbitragem</h3>
+                       <p className="text-sm text-slate-400">Preencha os dados abaixo para registrar sua entrada</p>
+                     </div>
+                   </div>
+                   <button 
+                     onClick={() => setIsAdding(false)}
+                     className="p-2.5 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-all ring-1 ring-white/5 hover:ring-white/20"
+                   >
+                     <X className="w-5 h-5" />
+                   </button>
+                 </div>
+ 
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                   {/* Column 1: Event Info */}
+                   <div className="space-y-6 bg-white/5 p-6 rounded-xl border border-white/5">
+                     <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                       <Calendar className="w-3 h-3" />
+                       Dados do Evento
+                     </h4>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Data</label>
+                         <input
+                           type="date"
+                           value={newOp.date}
+                           onChange={(e) => setNewOp({ ...newOp, date: e.target.value })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all font-medium"
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Hora</label>
+                         <input
+                           type="time"
+                           value={newOp.time}
+                           onChange={(e) => setNewOp({ ...newOp, time: e.target.value })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all font-medium"
+                         />
+                       </div>
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-xs font-medium text-slate-400">Nome do Evento</label>
+                       <input
+                         type="text"
+                         placeholder="Ex: Flamengo vs Palmeiras"
+                         value={newOp.event}
+                         onChange={(e) => setNewOp({ ...newOp, event: e.target.value })}
+                         className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all font-medium"
+                       />
+                     </div>
+                   </div>
+ 
+                   {/* Column 2: House A */}
+                   <div className="space-y-6 bg-blue-500/5 p-6 rounded-xl border border-blue-500/10">
+                     <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                       <TrendingUp className="w-3 h-3" />
+                       Lado A (Casa Principal)
+                     </h4>
+                     <div className="space-y-2">
+                       <label className="text-xs font-medium text-slate-400">Casa de Aposta</label>
+                       <select
+                         value={newOp.houseA || ''}
+                         onChange={(e) => setNewOp({ ...newOp, houseA: e.target.value })}
+                         className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all font-medium appearance-none"
+                       >
+                         <option value="" disabled>Selecione...</option>
+                         {BOOKMAKERS.map(house => (
+                           <option key={house} value={house}>{house}</option>
+                         ))}
+                       </select>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Odds</label>
+                         <input
+                           type="number"
+                           step="0.01"
+                           placeholder="1.95"
+                           value={newOp.oddA || ''}
+                           onChange={(e) => setNewOp({ ...newOp, oddA: parseFloat(e.target.value) || 0 })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all text-center font-bold"
+                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Valor da Aposta</label>
+                         <input
+                           type="number"
+                           step="0.01"
+                           placeholder="500.00"
+                           value={newOp.betA || ''}
+                           onChange={(e) => setNewOp({ ...newOp, betA: parseFloat(e.target.value) || 0 })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all text-center font-bold"
+                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                         />
+                       </div>
+                     </div>
+                   </div>
+ 
+                   {/* Column 3: House B */}
+                   <div className="space-y-6 bg-purple-500/5 p-6 rounded-xl border border-purple-500/10">
+                     <h4 className="text-xs font-bold text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                       <TrendingUp className="w-3 h-3" />
+                       Lado B (Cobertura)
+                     </h4>
+                     <div className="space-y-2">
+                       <label className="text-xs font-medium text-slate-400">Casa de Aposta</label>
+                       <select
+                         value={newOp.houseB || ''}
+                         onChange={(e) => setNewOp({ ...newOp, houseB: e.target.value })}
+                         className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/50 transition-all font-medium appearance-none"
+                       >
+                         <option value="" disabled>Selecione...</option>
+                         {BOOKMAKERS.map(house => (
+                           <option key={house} value={house}>{house}</option>
+                         ))}
+                       </select>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Odds</label>
+                         <input
+                           type="number"
+                           step="0.01"
+                           placeholder="2.05"
+                           value={newOp.oddB || ''}
+                           onChange={(e) => setNewOp({ ...newOp, oddB: parseFloat(e.target.value) || 0 })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/50 transition-all text-center font-bold"
+                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-xs font-medium text-slate-400">Valor da Aposta</label>
+                         <input
+                           type="number"
+                           step="0.01"
+                           placeholder="480.00"
+                           value={newOp.betB || ''}
+                           onChange={(e) => setNewOp({ ...newOp, betB: parseFloat(e.target.value) || 0 })}
+                           className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/50 transition-all text-center font-bold"
+                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+ 
+                 {/* Preview and Actions Summary Row */}
+                 <div className="mt-10 pt-10 border-t border-white/5 flex flex-col xl:flex-row items-center justify-between gap-10">
+                   <div className="flex flex-wrap items-center gap-8 bg-white/5 px-8 py-5 rounded-2xl border border-white/5 ring-1 ring-white/5">
+                     <div className="flex flex-col">
+                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Investido</span>
+                       <span className="text-xl font-bold text-white font-mono">
+                         R$ {((newOp.betA || 0) + (newOp.betB || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                       </span>
+                     </div>
+                     <div className="h-10 w-px bg-white/10 hidden sm:block" />
+                     <div className="flex flex-col">
+                       <span className="text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mb-1">Retorno (Lado A)</span>
+                       <span className={`text-xl font-bold ${(((newOp.oddA || 0) * (newOp.betA || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono`}>
+                         R$ {(((newOp.oddA || 0) * (newOp.betA || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                       </span>
+                     </div>
+                     <div className="h-10 w-px bg-white/10 hidden sm:block" />
+                     <div className="flex flex-col">
+                       <span className="text-[10px] font-bold text-emerald-500/70 uppercase tracking-widest mb-1">Retorno (Lado B)</span>
+                       <span className={`text-xl font-bold ${(((newOp.oddB || 0) * (newOp.betB || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))) >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono`}>
+                         R$ {(((newOp.oddB || 0) * (newOp.betB || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                       </span>
+                     </div>
+                   </div>
+ 
+                   <div className="flex items-center gap-4 w-full xl:w-auto">
+                     <div className="flex-1 sm:flex-none">
+                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 px-1">Notas / Observações</label>
+                       <input
+                         type="text"
+                         placeholder="Ex: Odds flutuando..."
+                         value={newOp.notes || ''}
+                         onChange={(e) => setNewOp({ ...newOp, notes: e.target.value })}
+                         className="w-full sm:w-80 px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition-all"
+                       />
+                     </div>
+                     
+                     <div className="flex gap-2 self-end mb-0.5">
+                       <button
+                         onClick={() => setIsAdding(false)}
+                         className="px-6 py-2.5 bg-white/5 text-slate-300 font-medium rounded-lg hover:bg-white/10 hover:text-white transition-all ring-1 ring-white/5"
+                       >
+                         Cancelar
+                       </button>
+                       <button
+                         onClick={handleAddOperation}
+                         className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-emerald-500/40 transition-all flex items-center gap-2 ring-1 ring-white/10"
+                       >
+                         <Check className="w-5 h-5" />
+                         Salvar Operação
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
 
       {/* Table */}
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-0 group-hover:opacity-10 transition duration-300" />
-        <div className="relative bg-[#0f172a]/50 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+    <div className="relative group">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-slate-500 to-indigo-500 rounded-xl blur opacity-0 group-hover:opacity-10 transition duration-300" />
+        <div className="relative bg-[#0f172a]/40 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white/5 border-b border-white/10">
+            <table className="w-full border-collapse">
+              <thead className="bg-[#1e293b]/50 border-b border-white/10">
                 <tr>
                   {[
-                    { key: 'date', label: 'Data' },
-                    { key: 'time', label: 'Hora' },
-                    { key: 'event', label: 'Evento' },
-                    { key: 'houseA', label: 'Casa A' },
-                    { key: 'houseB', label: 'Casa B' },
-                    { key: 'oddA', label: 'Odd A' },
-                    { key: 'oddB', label: 'Odd B' },
-                    { key: 'betA', label: 'Aposta A' },
-                    { key: 'betB', label: 'Aposta B' }
-                  ].map(({ key, label }) => (
+                    { key: 'date', label: 'Data', width: '100px' },
+                    { key: 'time', label: 'Hora', width: '80px' },
+                    { key: 'event', label: 'Evento', width: '220px' },
+                    { key: 'houseA', label: 'Casa A', width: '130px' },
+                    { key: 'houseB', label: 'Casa B', width: '130px' },
+                    { key: 'oddA', label: 'Odd A', width: '80px' },
+                    { key: 'oddB', label: 'Odd B', width: '80px' },
+                    { key: 'betA', label: 'Aposta A', width: '130px' },
+                    { key: 'betB', label: 'Aposta B', width: '130px' }
+                  ].map(({ key, label, width }) => (
                     <th
                       key={key}
                       onClick={() => handleSort(key as keyof Operation)}
-                      className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
+                      className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] cursor-pointer hover:text-white transition-colors"
+                      style={{ minWidth: width }}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {label}
                         <SortIcon field={key as keyof Operation} />
                       </div>
                     </th>
                   ))}
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Total</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Lucro A</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Lucro B</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Vencedor</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">ROI %</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Notas</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit A</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit B</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Vencedor</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">ROI %</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Notas</th>
+                  <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {isAdding && (
-                  <tr className="bg-indigo-500/5">
-                    <td className="px-4 py-3">
-                      <input
-                        type="date"
-                        value={newOp.date}
-                        onChange={(e) => setNewOp({ ...newOp, date: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="time"
-                        value={newOp.time}
-                        onChange={(e) => setNewOp({ ...newOp, time: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        placeholder="Time A x Time B"
-                        value={newOp.event}
-                        onChange={(e) => setNewOp({ ...newOp, event: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={newOp.houseA || ''}
-                        onChange={(e) => setNewOp({ ...newOp, houseA: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="" disabled>Selecione...</option>
-                        {BOOKMAKERS.map(house => (
-                          <option key={house} value={house}>{house}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={newOp.houseB || ''}
-                        onChange={(e) => setNewOp({ ...newOp, houseB: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="" disabled>Selecione...</option>
-                        {BOOKMAKERS.map(house => (
-                          <option key={house} value={house}>{house}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="1.95"
-                        value={newOp.oddA || ''}
-                        onChange={(e) => setNewOp({ ...newOp, oddA: parseFloat(e.target.value) || 0 })}
-                        className="w-20 px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="2.05"
-                        value={newOp.oddB || ''}
-                        onChange={(e) => setNewOp({ ...newOp, oddB: parseFloat(e.target.value) || 0 })}
-                        className="w-20 px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="512.82"
-                        value={newOp.betA || ''}
-                        onChange={(e) => setNewOp({ ...newOp, betA: parseFloat(e.target.value) || 0 })}
-                        className="w-24 px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="487.18"
-                        value={newOp.betB || ''}
-                        onChange={(e) => setNewOp({ ...newOp, betB: parseFloat(e.target.value) || 0 })}
-                        className="w-24 px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                      R$ {((newOp.betA || 0) + (newOp.betB || 0)).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                      R$ {(((newOp.oddA || 0) * (newOp.betA || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                      R$ {(((newOp.oddB || 0) * (newOp.betB || 0)) - ((newOp.betA || 0) + (newOp.betB || 0))).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={newOp.winner || ''}
-                        onChange={(e) => setNewOp({ ...newOp, winner: e.target.value as 'A' | 'B' | '' })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="">-</option>
-                        <option value="A">A ({newOp.houseA || 'Casa A'})</option>
-                        <option value="B">B ({newOp.houseB || 'Casa B'})</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>-</td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        placeholder="Observações..."
-                        value={newOp.notes || ''}
-                        onChange={(e) => setNewOp({ ...newOp, notes: e.target.value })}
-                        className="w-full px-2 py-1 bg-white/5 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleAddOperation}
-                          className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setIsAdding(false)}
-                          className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                {/* No 'isAdding' row here, it's now a card above */}
 
                 {sortedOperations.map((op, index) => {
                   const metrics = calculateOpMetrics(op);
-
+ 
                   return (
                     <motion.tr
                       key={op.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.02 }}
-                      className="hover:bg-white/5 transition-colors"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="hover:bg-indigo-500/5 transition-all group/row"
                     >
-                      <td className="px-4 py-3 text-slate-300 text-sm">{new Date(op.date).toLocaleDateString('pt-BR')}</td>
-                      <td className="px-4 py-3 text-slate-300 text-sm">{op.time}</td>
-                      <td className="px-4 py-3 text-white text-sm font-medium">{op.event}</td>
-                      <td className="px-4 py-3 text-slate-300 text-sm">{op.houseA}</td>
-                      <td className="px-4 py-3 text-slate-300 text-sm">{op.houseB}</td>
-                      <td className="px-4 py-3 text-amber-400 text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                      <td className="px-6 py-5 text-slate-400 text-sm font-medium">{new Date(op.date).toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-5 text-slate-500 text-sm">{op.time}</td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-white text-sm font-bold tracking-tight">{op.event}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-md text-xs font-bold border border-blue-500/10">
+                          {op.houseA}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-md text-xs font-bold border border-purple-500/10">
+                          {op.houseB}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {op.oddA.toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-amber-400 text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                      <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                         {op.oddB.toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {op.betA.toFixed(2)}
+                      <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        R$ {op.betA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {op.betB.toFixed(2)}
+                      <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        R$ {op.betB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-white text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-                        R$ {metrics.totalBet.toFixed(2)}
+                      <td className="px-6 py-5 text-white text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        R$ {metrics.totalBet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td
-                        className={`px-4 py-3 text-sm font-medium ${
-                          metrics.profitA >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'
+                        className={`px-6 py-5 text-sm font-bold ${
+                          metrics.profitA >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         }`}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}
                       >
-                        R$ {metrics.profitA.toFixed(2)}
+                        R$ {metrics.profitA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td
-                        className={`px-4 py-3 text-sm font-medium ${
-                          metrics.profitB >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'
+                        className={`px-6 py-5 text-sm font-bold ${
+                          metrics.profitB >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         }`}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}
                       >
-                        R$ {metrics.profitB.toFixed(2)}
+                        R$ {metrics.profitB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5">
                         {op.winner ? (
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            op.winner === 'A' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                            op.winner === 'A' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20' : 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20'
                           }`}>
+                            <Check className="w-3 h-3" />
                             {op.winner === 'A' ? op.houseA : op.houseB}
-                          </span>
+                          </div>
                         ) : (
-                          <span className="text-slate-500 text-xs">Pendente</span>
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-500/20">
+                            Pendente
+                          </div>
                         )}
                       </td>
                       <td
-                        className={`px-4 py-3 text-sm font-bold ${
-                          metrics.roi >= 0 ? 'text-emerald-400' : 'text-red-400'
+                        className={`px-6 py-5 text-sm font-black ${
+                          metrics.roi >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         }`}
                         style={{ fontFamily: 'JetBrains Mono, monospace' }}
                       >
                         {op.winner ? `${metrics.roi >= 0 ? '+' : ''}${metrics.roi.toFixed(2)}%` : '-'}
                       </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">
-                        {op.notes || '-'}
+                      <td className="px-6 py-5">
+                         <div className="max-w-[150px] overflow-hidden">
+                           <p className="text-slate-500 text-xs italic truncate" title={op.notes}>
+                             {op.notes || '—'}
+                           </p>
+                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5">
                         <button
                           onClick={() => handleDeleteOperation(op.id)}
-                          className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover/row:opacity-100"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -450,8 +564,16 @@ export default function OperationsTable({ data, updateData }: OperationsTablePro
 
                 {data.operations.length === 0 && !isAdding && (
                   <tr>
-                    <td colSpan={16} className="px-4 py-12 text-center text-slate-500">
-                      Nenhuma operação registrada. Clique em "Nova Operação" para começar.
+                    <td colSpan={16} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
+                          <TrendingUp className="w-8 h-8 text-slate-600" />
+                        </div>
+                        <div>
+                          <p className="text-slate-400 font-bold mb-1">Nenhuma operação registrada</p>
+                          <p className="text-slate-500 text-xs">Clique em "Nova Operação" para começar a lucrar</p>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 )}
