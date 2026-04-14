@@ -17,7 +17,10 @@ import OperationsTable from './components/OperationsTable';
 import CostsTable from './components/CostsTable';
 
 interface User {
+  uid: string;
   email: string;
+  name?: string;
+  bancaInicial?: number;
 }
 
 export type Operation = {
@@ -78,12 +81,15 @@ export default function App() {
     }
   }, [data, user]);
 
-  const handleLogin = (email: string, password: string) => {
-    // Mock authentication - in real app, this would call Firebase
-    if (email && password) {
-      const newUser = { email };
+  const handleLogin = (newUser: any) => {
+    if (newUser) {
       setUser(newUser);
       localStorage.setItem('surebet_user', JSON.stringify(newUser));
+      
+      // Update bankroll based on user data
+      if (newUser.bancaInicial) {
+        setData(prev => ({ ...prev, initialBankroll: newUser.bancaInicial }));
+      }
     }
   };
 

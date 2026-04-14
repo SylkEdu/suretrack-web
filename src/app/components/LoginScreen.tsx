@@ -1,25 +1,59 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { TrendingUp, Lock, Mail, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { TrendingUp, Lock, Mail, ArrowRight, User as UserIcon, DollarSign, AlertCircle } from 'lucide-react';
 
 interface LoginScreenProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: (user: any) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [bancaInicial, setBancaInicial] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg('');
 
-    // Simulate authentication delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    onLogin(email, password);
-    setIsLoading(false);
+    try {
+      if (isRegister) {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name, 
+            email, 
+            password, 
+            bancaInicial: Number(bancaInicial) || 0 
+          })
+        });
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error || 'Erro ao cadastrar usuário');
+        
+        onLogin({ email, name, bancaInicial: Number(bancaInicial) || 0, uid: data.uid });
+      } else {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error || 'Erro ao realizar login. Verifique suas credenciais e a API Key do Firebase.');
+        
+        onLogin(data);
+      }
+    } catch (error: any) {
+      setErrorMsg(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,7 +99,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         {/* Card */}
         <div className="relative bg-[#0f172a]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           {/* Logo & Title */}
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-6">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -95,13 +129,80 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </motion.p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
+          <div className="flex rounded-lg bg-white/5 p-1 mb-6">
+            <button
+              onClick={() => { setIsRegister(false); setErrorMsg(''); }}
+              className={`flex-1 text-sm py-2 px-4 rounded-md transition-all ${!isRegister ? 'bg-indigo-500/20 text-indigo-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white'}`}
             >
+              Entrar
+            </button>
+            <button
+              onClick={() => { setIsRegister(true); setErrorMsg(''); }}
+              className={`flex-1 text-sm py-2 px-4 rounded-md transition-all ${isRegister ? 'bg-indigo-500/20 text-indigo-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white'}`}
+            >
+              Cadastrar
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {errorMsg && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2 text-red-400"
+              >
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p className="text-sm">{errorMsg}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AnimatePresence mode="wait">
+              {isRegister && (
+                 <motion.div
+                 key="registerFields"
+                 initial={{ opacity: 0, height: 0 }}
+                 animate={{ opacity: 1, height: 'auto' }}
+                 exit={{ opacity: 0, height: 0 }}
+                 className="space-y-4"
+               >
+                 <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2 mt-2">Nome</label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Seu nome"
+                      required={isRegister}
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    />
+                  </div>
+                 </div>
+
+                 <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Banca Inicial</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                    <input
+                      type="number"
+                      value={bancaInicial}
+                      onChange={(e) => setBancaInicial(e.target.value)}
+                      placeholder="Ex: 5000"
+                      required={isRegister}
+                      className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    />
+                  </div>
+                 </div>
+               </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div layout>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Email
               </label>
@@ -118,11 +219,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 }}
-            >
+            <motion.div layout>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Senha
               </label>
@@ -140,42 +237,26 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </motion.div>
 
             <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              layout
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group mt-4"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Entrar</span>
+                  <span>{isRegister ? 'Criar Conta' : 'Entrar'}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </motion.button>
           </form>
-
-          {/* Footer */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-6 pt-6 border-t border-white/5 text-center"
-          >
-            <p className="text-xs text-slate-500">
-              Demo mode: Use qualquer email e senha para entrar
-            </p>
-          </motion.div>
         </div>
 
         {/* Floating stats */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
+           layout
           className="mt-6 grid grid-cols-3 gap-3"
         >
           {[
@@ -185,9 +266,6 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 + i * 0.1 }}
               className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 text-center"
             >
               <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
