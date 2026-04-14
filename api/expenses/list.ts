@@ -1,5 +1,5 @@
-import { db } from "../../lib/firebaseAdmin";
-import { verifyToken } from "../../lib/authMiddleware";
+import { db } from "../../lib/firebaseAdmin.js";
+import { verifyToken } from "../../lib/authMiddleware.js";
 
 export default async function handler(req, res) {
   try {
