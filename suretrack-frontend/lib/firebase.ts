@@ -2,9 +2,9 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJECT_ID",
+  apiKey: "AIzaSyBRvbxCqvtGCrjDJ7JUJkyYfcs7PEwBZ8s",
+  authDomain: "suretrack-5a1dd.firebaseapp.com",
+  projectId: "suretrack-5a1dd",
 };
 
 const app = initializeApp(firebaseConfig);
