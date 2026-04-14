@@ -100,6 +100,10 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
         animate={{ opacity: 1, y: 0 }}
         className="relative group"
       >
+        <div className={`absolute -inset-0.5 bg-gradient-to-r ${totalManuseios >= 0 ? 'from-emerald-500 to-green-500' : 'from-red-500 to-rose-500'} rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300`} />
+        <div className="relative bg-[#0f172a]/50 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm text-slate-400 mb-1">Total Movimentado (Saldo de Manuseio)</p>
               <div className={`text-4xl font-bold ${totalManuseios >= 0 ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
                 {totalManuseios >= 0 ? '+' : ''}R$ {totalManuseios.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
