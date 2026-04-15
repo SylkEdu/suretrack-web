@@ -1,11 +1,18 @@
 import admin from "firebase-admin";
 
 if (!admin.apps.length) {
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    // Tratamento para variavel de ambiente na Vercel:
+    // Remove aspas acidentais e garante que \n se converta em quebras reais
+    privateKey = privateKey.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+  }
+
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      privateKey: privateKey,
     }),
   });
 }
