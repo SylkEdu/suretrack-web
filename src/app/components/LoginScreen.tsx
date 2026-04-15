@@ -116,7 +116,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               className="text-3xl font-bold text-white mb-2"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
-              SureBet Pro
+              SureTrack
             </motion.h1>
 
             <motion.p

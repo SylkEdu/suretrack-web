@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Check, X, ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Check, X, ArrowRightLeft, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { AppData, Manuseio } from '../App';
 
 interface CostsTableProps {
   data: AppData;
   updateData: (updates: Partial<AppData>) => void;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
-export default function CostsTable({ data, updateData }: CostsTableProps) {
+export default function CostsTable({ data, updateData, authFetch }: CostsTableProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof Manuseio>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [newManuseio, setNewManuseio] = useState<Partial<Manuseio>>({
@@ -18,27 +21,68 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
     value: 0
   });
 
-  const handleAddManuseio = () => {
+  // ✅ Save manuseio to Firebase
+  const handleAddManuseio = async () => {
     if (!newManuseio.description || !newManuseio.value) return;
 
-    const manuseio: Manuseio = {
-      id: Date.now().toString(),
-      date: newManuseio.date!,
-      description: newManuseio.description!,
-      value: Number(newManuseio.value) || 0
-    };
+    setIsSaving(true);
+    try {
+      const res = await authFetch('/api/expenses/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          date: newManuseio.date,
+          description: newManuseio.description,
+          value: Number(newManuseio.value) || 0,
+        }),
+      });
 
-    updateData({ manuseios: [...data.manuseios, manuseio] });
-    setIsAdding(false);
-    setNewManuseio({
-      date: new Date().toISOString().split('T')[0],
-      description: '',
-      value: 0
-    });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao salvar manuseio');
+      }
+
+      const { id } = await res.json();
+
+      const manuseio: Manuseio = {
+        id,
+        date: newManuseio.date!,
+        description: newManuseio.description!,
+        value: Number(newManuseio.value) || 0
+      };
+
+      updateData({ manuseios: [...data.manuseios, manuseio] });
+      setIsAdding(false);
+      setNewManuseio({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        value: 0
+      });
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteManuseio = (id: string) => {
-    updateData({ manuseios: data.manuseios.filter(m => m.id !== id) });
+  // ✅ Delete manuseio from Firebase
+  const handleDeleteManuseio = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await authFetch(`/api/expenses/delete?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao deletar manuseio');
+      }
+
+      updateData({ manuseios: data.manuseios.filter(m => m.id !== id) });
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleSort = (field: keyof Manuseio) => {
@@ -54,7 +98,6 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
     const aVal = a[sortField];
     const bVal = b[sortField];
     const multiplier = sortDirection === 'asc' ? 1 : -1;
-
     if (typeof aVal === 'string' && typeof bVal === 'string') {
       return aVal.localeCompare(bVal) * multiplier;
     }
@@ -131,37 +174,26 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     onClick={() => handleSort('date')}
                     className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors w-1/4"
                   >
-                    <div className="flex items-center gap-1">
-                      Data
-                      <SortIcon field="date" />
-                    </div>
+                    <div className="flex items-center gap-1">Data <SortIcon field="date" /></div>
                   </th>
                   <th
                     onClick={() => handleSort('description')}
                     className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors w-1/2"
                   >
-                    <div className="flex items-center gap-1">
-                      Descrição do Manuseio
-                      <SortIcon field="description" />
-                    </div>
+                    <div className="flex items-center gap-1">Descrição do Manuseio <SortIcon field="description" /></div>
                   </th>
                   <th
                     onClick={() => handleSort('value')}
                     className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer hover:text-white transition-colors"
                   >
-                    <div className="flex items-center gap-1">
-                      Valor
-                      <SortIcon field="value" />
-                    </div>
+                    <div className="flex items-center gap-1">Valor <SortIcon field="value" /></div>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Ações
-                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {isAdding && (
-                  <tr className="bg-red-500/5">
+                  <tr className="bg-blue-500/5">
                     <td className="px-6 py-4">
                       <input
                         type="date"
@@ -197,9 +229,10 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                       <div className="flex gap-2">
                         <button
                           onClick={handleAddManuseio}
-                          className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
+                          disabled={isSaving}
+                          className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
                         >
-                          <Check className="w-4 h-4" />
+                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => setIsAdding(false)}
@@ -218,7 +251,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.02 }}
-                    className="hover:bg-white/5 transition-colors group"
+                    className={`hover:bg-white/5 transition-colors group ${deletingId === m.id ? 'opacity-40' : ''}`}
                   >
                     <td className="px-6 py-4 text-slate-300 text-sm">
                       {new Date(m.date).toLocaleDateString('pt-BR', {
@@ -248,9 +281,10 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleDeleteManuseio(m.id)}
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        disabled={deletingId === m.id}
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingId === m.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                       </button>
                     </td>
                   </motion.tr>
@@ -325,7 +359,7 @@ export default function CostsTable({ data, updateData }: CostsTableProps) {
                 className={`text-xl font-bold ${stat.value >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
                 style={{ fontFamily: 'JetBrains Mono, monospace' }}
               >
-                 {stat.value >= 0 ? '+' : ''}R$ {stat.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {stat.value >= 0 ? '+' : ''}R$ {stat.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </motion.div>
           ))}

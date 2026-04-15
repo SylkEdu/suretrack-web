@@ -1,15 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   TrendingUp,
-  DollarSign,
-  TrendingDown,
   BarChart3,
   LogOut,
-  Plus,
-  Trash2,
-  Filter,
-  Download,
   ArrowRightLeft
 } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
@@ -22,6 +16,7 @@ interface User {
   email: string;
   name?: string;
   bancaInicial?: number;
+  idToken: string;
 }
 
 export type Operation = {
@@ -60,50 +55,107 @@ export default function App() {
     operations: [],
     manuseios: []
   });
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Load data from localStorage on mount
+  // Helper: fetch with auth token
+  const authFetch = useCallback(
+    (url: string, options: RequestInit = {}) => {
+      if (!user?.idToken) throw new Error('Não autenticado');
+      return fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.idToken}`,
+          ...(options.headers || {}),
+        },
+      });
+    },
+    [user]
+  );
+
+  // Load operations and manuseios from Firebase when user logs in
+  const loadData = useCallback(
+    async (token: string, bancaInicial: number) => {
+      setIsLoadingData(true);
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [opsRes, expsRes] = await Promise.all([
+          fetch('/api/operations/list', { headers }),
+          fetch('/api/expenses/list', { headers }),
+        ]);
+
+        const ops = opsRes.ok ? await opsRes.json() : [];
+        const exps = expsRes.ok ? await expsRes.json() : [];
+
+        // Map API fields to frontend Operation shape
+        const operations: Operation[] = ops.map((op: any) => ({
+          id: op.id,
+          date: op.date,
+          time: op.time || '',
+          event: op.event || '',
+          houseA: op.casaA || op.houseA || '',
+          houseB: op.casaB || op.houseB || '',
+          oddA: op.oddA || 0,
+          oddB: op.oddB || 0,
+          betA: op.apostaA ?? op.betA ?? 0,
+          betB: op.apostaB ?? op.betB ?? 0,
+          winner: op.winner || '',
+          notes: op.notes || '',
+        }));
+
+        const manuseios: Manuseio[] = exps.map((m: any) => ({
+          id: m.id,
+          date: m.date,
+          description: m.description || '',
+          value: m.value || 0,
+        }));
+
+        setData({ initialBankroll: bancaInicial, operations, manuseios });
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    },
+    []
+  );
+
+  // Restore session from localStorage (token only)
   useEffect(() => {
     const storedUser = localStorage.getItem('surebet_user');
-    const storedData = localStorage.getItem('surebet_data');
-
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      
-      // Migration: Rename 'costs' to 'manuseios' if it exists in old data
-      if (parsedData.costs && !parsedData.manuseios) {
-        parsedData.manuseios = parsedData.costs;
-        delete parsedData.costs;
+      try {
+        const parsed = JSON.parse(storedUser) as User;
+        setUser(parsed);
+        loadData(parsed.idToken, parsed.bancaInicial ?? 10000);
+      } catch {
+        localStorage.removeItem('surebet_user');
       }
-      
-      setData(parsedData);
     }
-  }, []);
-
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('surebet_data', JSON.stringify(data));
-    }
-  }, [data, user]);
+  }, [loadData]);
 
   const handleLogin = (newUser: any) => {
-    if (newUser) {
-      setUser(newUser);
-      localStorage.setItem('surebet_user', JSON.stringify(newUser));
-      
-      // Update bankroll based on user data
-      if (newUser.bancaInicial) {
-        setData(prev => ({ ...prev, initialBankroll: newUser.bancaInicial }));
-      }
-    }
+    if (!newUser) return;
+    const userWithToken: User = {
+      uid: newUser.uid,
+      email: newUser.email,
+      name: newUser.name,
+      bancaInicial: newUser.bancaInicial ?? 10000,
+      idToken: newUser.idToken,
+    };
+    setUser(userWithToken);
+    // Save only auth info (not data) to localStorage
+    localStorage.setItem('surebet_user', JSON.stringify(userWithToken));
+    loadData(newUser.idToken, newUser.bancaInicial ?? 10000);
   };
 
   const handleLogout = () => {
     setUser(null);
+    setData({ initialBankroll: 10000, operations: [], manuseios: [] });
     localStorage.removeItem('surebet_user');
   };
 
@@ -142,7 +194,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                SureBet Pro
+                SureTrack
               </h1>
               <p className="text-xs text-slate-400">Gestão de Arbitragem Esportiva</p>
             </div>
@@ -196,6 +248,16 @@ export default function App() {
         </div>
       </motion.header>
 
+      {/* Loading overlay */}
+      {isLoadingData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0e1a]/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+            <p className="text-slate-400 text-sm">Carregando dados do Firebase...</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="relative max-w-[1600px] mx-auto px-6 py-8">
         <AnimatePresence mode="wait">
@@ -219,7 +281,7 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <OperationsTable data={data} updateData={updateData} />
+              <OperationsTable data={data} updateData={updateData} authFetch={authFetch} />
             </motion.div>
           )}
 
@@ -231,7 +293,7 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <CostsTable data={data} updateData={updateData} />
+              <CostsTable data={data} updateData={updateData} authFetch={authFetch} />
             </motion.div>
           )}
         </AnimatePresence>
