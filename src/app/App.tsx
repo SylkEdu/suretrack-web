@@ -57,6 +57,16 @@ export default function App() {
   });
   const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // Helper: safely parse JSON (avoids crash when API returns HTML error page)
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Erro do servidor (${res.status}): Verifique as variáveis de ambiente Firebase na Vercel.`);
+    }
+  };
+
   // Helper: fetch with auth token
   const authFetch = useCallback(
     (url: string, options: RequestInit = {}) => {
@@ -88,8 +98,24 @@ export default function App() {
           fetch('/api/expenses/list', { headers }),
         ]);
 
-        const ops = opsRes.ok ? await opsRes.json() : [];
-        const exps = expsRes.ok ? await expsRes.json() : [];
+        let ops = [];
+        let exps = [];
+
+        if (opsRes.ok) {
+          const text = await opsRes.text();
+          try { ops = JSON.parse(text); } catch { console.error('Falha ao parsear operações'); }
+        } else {
+          const text = await opsRes.text();
+          console.error('Erro ao carregar operações:', opsRes.status, text.slice(0, 200));
+        }
+
+        if (expsRes.ok) {
+          const text = await expsRes.text();
+          try { exps = JSON.parse(text); } catch { console.error('Falha ao parsear manuseios'); }
+        } else {
+          const text = await expsRes.text();
+          console.error('Erro ao carregar manuseios:', expsRes.status, text.slice(0, 200));
+        }
 
         // Map API fields to frontend Operation shape
         const operations: Operation[] = ops.map((op: any) => ({

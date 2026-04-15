@@ -32,20 +32,24 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             bancaInicial: Number(bancaInicial) || 0 
           })
         });
-        const data = await response.json();
+        const text = await response.text();
+        let data: any = {};
+        try { data = JSON.parse(text); } catch { throw new Error('Erro do servidor. Verifique as variáveis de ambiente Firebase na Vercel.'); }
         
         if (!response.ok) throw new Error(data.error || 'Erro ao cadastrar usuário');
         
-        onLogin({ email, name, bancaInicial: Number(bancaInicial) || 0, uid: data.uid });
+        onLogin({ email, name, bancaInicial: Number(bancaInicial) || 0, uid: data.uid, idToken: data.idToken });
       } else {
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        const data = await response.json();
+        const text = await response.text();
+        let data: any = {};
+        try { data = JSON.parse(text); } catch { throw new Error('Erro do servidor. Verifique as variáveis de ambiente Firebase na Vercel.'); }
         
-        if (!response.ok) throw new Error(data.error || 'Erro ao realizar login. Verifique suas credenciais e a API Key do Firebase.');
+        if (!response.ok) throw new Error(data.error || 'Erro ao realizar login. Verifique suas credenciais.');
         
         onLogin(data);
       }
