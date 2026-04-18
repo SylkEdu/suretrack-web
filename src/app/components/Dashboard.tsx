@@ -63,12 +63,15 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
       ? data.manuseios.filter(m => m.date.split('-')[1] === selectedMonth)
       : data.manuseios;
 
-    const totalBets = filteredOps.reduce((sum, op) => sum + op.betA + op.betB, 0);
+    const totalBets = filteredOps.reduce((sum, op) => sum + op.betA + op.betB + (op.betC || 0), 0);
     const totalProfits = filteredOps.reduce((sum, op) => {
       if (!op.winner) return sum;
-      const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
-      const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
-      return sum + (op.winner === 'A' ? profitA : profitB);
+      const totalCost = op.betA + op.betB + (op.betC || 0);
+      const profitA = (op.oddA * op.betA) - totalCost;
+      const profitB = (op.oddB * op.betB) - totalCost;
+      const profitC = ((op.oddC || 0) * (op.betC || 0)) - totalCost;
+      const actualProfit = op.winner === 'A' ? profitA : op.winner === 'B' ? profitB : profitC;
+      return sum + actualProfit;
     }, 0);
 
     const totalManuseios = filteredManuseios.reduce((sum, m) => sum + m.value, 0);
@@ -76,9 +79,12 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
     // For "Global" values, we still need the total across all time
     const allTimeProfits = data.operations.reduce((sum, op) => {
       if (!op.winner) return sum;
-      const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
-      const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
-      return sum + (op.winner === 'A' ? profitA : profitB);
+      const totalCost = op.betA + op.betB + (op.betC || 0);
+      const profitA = (op.oddA * op.betA) - totalCost;
+      const profitB = (op.oddB * op.betB) - totalCost;
+      const profitC = ((op.oddC || 0) * (op.betC || 0)) - totalCost;
+      const actualProfit = op.winner === 'A' ? profitA : op.winner === 'B' ? profitB : profitC;
+      return sum + actualProfit;
     }, 0);
     const allTimeManuseios = data.manuseios.reduce((sum, m) => sum + m.value, 0);
 
@@ -111,9 +117,11 @@ export default function Dashboard({ data, updateData }: DashboardProps) {
 
     data.operations.forEach(op => {
       if (op.winner) {
-        const profitA = (op.oddA * op.betA) - (op.betA + op.betB);
-        const profitB = (op.oddB * op.betB) - (op.betA + op.betB);
-        const profit = op.winner === 'A' ? profitA : profitB;
+        const totalCost = op.betA + op.betB + (op.betC || 0);
+        const profitA = (op.oddA * op.betA) - totalCost;
+        const profitB = (op.oddB * op.betB) - totalCost;
+        const profitC = ((op.oddC || 0) * (op.betC || 0)) - totalCost;
+        const profit = op.winner === 'A' ? profitA : op.winner === 'B' ? profitB : profitC;
         allEvents.push({ date: op.date, value: profit });
       }
     });

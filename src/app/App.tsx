@@ -26,11 +26,14 @@ export type Operation = {
   event: string;
   houseA: string;
   houseB: string;
+  houseC?: string;
   oddA: number;
   oddB: number;
+  oddC?: number;
   betA: number;
   betB: number;
-  winner?: 'A' | 'B' | '';
+  betC?: number;
+  winner?: 'A' | 'B' | 'C' | '';
   notes?: string;
 };
 
@@ -125,10 +128,13 @@ export default function App() {
           event: op.event || '',
           houseA: op.casaA || op.houseA || '',
           houseB: op.casaB || op.houseB || '',
+          houseC: op.casaC || op.houseC || '',
           oddA: op.oddA || 0,
           oddB: op.oddB || 0,
+          oddC: op.oddC || 0,
           betA: op.apostaA ?? op.betA ?? 0,
           betB: op.apostaB ?? op.betB ?? 0,
+          betC: op.apostaC ?? op.betC ?? 0,
           winner: op.winner || '',
           notes: op.notes || '',
         }));

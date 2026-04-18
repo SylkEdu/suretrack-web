@@ -29,10 +29,13 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
     event: '',
     houseA: '',
     houseB: '',
+    houseC: '',
     oddA: 0,
     oddB: 0,
+    oddC: 0,
     betA: 0,
     betB: 0,
+    betC: 0,
     winner: '',
     notes: ''
   });
@@ -45,13 +48,17 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
     event: true,
     houseA: true,
     houseB: true,
+    houseC: true,
     oddA: true,
     oddB: true,
+    oddC: true,
     betA: true,
     betB: true,
+    betC: true,
     total: true,
     profitA: true,
     profitB: true,
+    profitC: true,
     winner: true,
     roi: true,
     notes: true
@@ -69,12 +76,13 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
   }, []);
 
   const calculateOpMetrics = (op: Operation) => {
-    const totalBet = op.betA + op.betB;
+    const totalBet = op.betA + op.betB + (op.betC || 0);
     const profitA = (op.oddA * op.betA) - totalBet;
     const profitB = (op.oddB * op.betB) - totalBet;
-    const actualProfit = !op.winner ? 0 : op.winner === 'A' ? profitA : profitB;
+    const profitC = ((op.oddC || 0) * (op.betC || 0)) - totalBet;
+    const actualProfit = !op.winner ? 0 : op.winner === 'A' ? profitA : op.winner === 'B' ? profitB : profitC;
     const roi = totalBet > 0 ? (actualProfit / totalBet) * 100 : 0;
-    return { totalBet, profitA, profitB, actualProfit, roi };
+    return { totalBet, profitA, profitB, profitC, actualProfit, roi };
   };
 
   // ✅ Save operation to Firebase
@@ -89,10 +97,13 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
         event: newOp.event,
         casaA: newOp.houseA,
         casaB: newOp.houseB,
+        casaC: newOp.houseC || '',
         oddA: Number(newOp.oddA) || 0,
         oddB: Number(newOp.oddB) || 0,
+        oddC: Number(newOp.oddC) || 0,
         apostaA: Number(newOp.betA) || 0,
         apostaB: Number(newOp.betB) || 0,
+        apostaC: Number(newOp.betC) || 0,
         notes: newOp.notes || '',
         winner: newOp.winner || '',
       };
@@ -116,11 +127,14 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
         event: newOp.event!,
         houseA: newOp.houseA!,
         houseB: newOp.houseB!,
+        houseC: newOp.houseC || '',
         oddA: Number(newOp.oddA) || 0,
         oddB: Number(newOp.oddB) || 0,
+        oddC: Number(newOp.oddC) || 0,
         betA: Number(newOp.betA) || 0,
         betB: Number(newOp.betB) || 0,
-        winner: (newOp.winner as 'A' | 'B' | '') || '',
+        betC: Number(newOp.betC) || 0,
+        winner: (newOp.winner as 'A' | 'B' | 'C' | '') || '',
         notes: newOp.notes || ''
       };
 
@@ -129,8 +143,8 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
       setNewOp({
         date: new Date().toISOString().split('T')[0],
         time: new Date().toTimeString().slice(0, 5),
-        event: '', houseA: '', houseB: '',
-        oddA: 0, oddB: 0, betA: 0, betB: 0, winner: '', notes: ''
+        event: '', houseA: '', houseB: '', houseC: '',
+        oddA: 0, oddB: 0, oddC: 0, betA: 0, betB: 0, betC: 0, winner: '', notes: ''
       });
     } catch (err: any) {
       alert(err.message);
@@ -162,7 +176,7 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
   };
 
   // ✅ Update winner in Firebase
-  const handleUpdateWinner = async (id: string, winner: 'A' | 'B' | '') => {
+  const handleUpdateWinner = async (id: string, winner: 'A' | 'B' | 'C' | '') => {
     setUpdatingWinnerId(id);
     try {
       const res = await authFetch('/api/operations/update', {
@@ -191,9 +205,11 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
   };
 
   const columnLabels: Record<keyof typeof visibleColumns, string> = {
-    date: 'Data', time: 'Hora', event: 'Evento', houseA: 'Casa A', houseB: 'Casa B',
-    oddA: 'Odd A', oddB: 'Odd B', betA: 'Aposta A', betB: 'Aposta B',
-    total: 'Total', profitA: 'Profit A', profitB: 'Profit B',
+    date: 'Data', time: 'Hora', event: 'Evento', 
+    houseA: 'Casa A', houseB: 'Casa B', houseC: 'Casa C',
+    oddA: 'Odd A', oddB: 'Odd B', oddC: 'Odd C',
+    betA: 'Aposta A', betB: 'Aposta B', betC: 'Aposta C',
+    total: 'Total', profitA: 'Profit A', profitB: 'Profit B', profitC: 'Profit C',
     winner: 'Vencedor', roi: 'ROI', notes: 'Notas'
   };
 
@@ -505,6 +521,49 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                       </div>
                     </div>
                   </div>
+
+                  {/* Column 4: House C (Optional) */}
+                  <div className="space-y-6 bg-pink-500/5 p-6 rounded-xl border border-pink-500/10">
+                    <h4 className="text-xs font-bold text-pink-400 uppercase tracking-widest flex items-center gap-2">
+                      <TrendingUp className="w-3 h-3" />
+                      Lado C (Extra - Opcional)
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-400">Casa de Aposta</label>
+                      <select
+                        value={newOp.houseC || ''}
+                        onChange={(e) => setNewOp({ ...newOp, houseC: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/50 transition-all font-medium appearance-none"
+                      >
+                        <option value="">Nenhuma / Não usar</option>
+                        {BOOKMAKERS.map(house => (
+                          <option key={house} value={house}>{house}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400">Odds</label>
+                        <input
+                          type="number" step="0.01" placeholder="3.50"
+                          value={newOp.oddC || ''}
+                          onChange={(e) => setNewOp({ ...newOp, oddC: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/50 transition-all text-center font-bold"
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-400">Valor da Aposta</label>
+                        <input
+                          type="number" step="0.01" placeholder="120.00"
+                          value={newOp.betC || ''}
+                          onChange={(e) => setNewOp({ ...newOp, betC: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-4 py-2.5 bg-slate-900 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/50 transition-all text-center font-bold"
+                          style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Preview and Actions */}
@@ -582,10 +641,13 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                     { key: 'event', label: 'Evento', width: '220px' },
                     { key: 'houseA', label: 'Casa A', width: '130px' },
                     { key: 'houseB', label: 'Casa B', width: '130px' },
+                    { key: 'houseC', label: 'Casa C', width: '130px' },
                     { key: 'oddA', label: 'Odd A', width: '80px' },
                     { key: 'oddB', label: 'Odd B', width: '80px' },
+                    { key: 'oddC', label: 'Odd C', width: '80px' },
                     { key: 'betA', label: 'Aposta A', width: '130px' },
-                    { key: 'betB', label: 'Aposta B', width: '130px' }
+                    { key: 'betB', label: 'Aposta B', width: '130px' },
+                    { key: 'betC', label: 'Aposta C', width: '130px' }
                   ].filter(col => visibleColumns[col.key as keyof typeof visibleColumns]).map(({ key, label, width }) => (
                     <th
                       key={key}
@@ -602,6 +664,7 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                   {visibleColumns.total && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Total</th>}
                   {visibleColumns.profitA && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit A</th>}
                   {visibleColumns.profitB && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit B</th>}
+                  {visibleColumns.profitC && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Profit C</th>}
                   {visibleColumns.winner && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Vencedor</th>}
                   {visibleColumns.roi && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">ROI %</th>}
                   {visibleColumns.notes && <th className="px-6 py-5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Notas</th>}
@@ -639,10 +702,17 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                           <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-md text-xs font-bold border border-purple-500/10">{op.houseB}</span>
                         </td>
                       )}
+                      {visibleColumns.houseC && (
+                        <td className="px-6 py-5">
+                          <span className={`px-2.5 py-1 ${op.houseC ? 'bg-pink-500/10 text-pink-400 border-pink-500/10' : 'bg-slate-500/5 text-slate-500 border-white/5'} rounded-md text-xs font-bold border`}>{op.houseC || '—'}</span>
+                        </td>
+                      )}
                       {visibleColumns.oddA && <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{op.oddA.toFixed(2)}</td>}
                       {visibleColumns.oddB && <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{op.oddB.toFixed(2)}</td>}
+                      {visibleColumns.oddC && <td className="px-6 py-5 text-amber-500/90 text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{op.oddC ? op.oddC.toFixed(2) : '—'}</td>}
                       {visibleColumns.betA && <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>R$ {op.betA.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
                       {visibleColumns.betB && <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>R$ {op.betB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
+                      {visibleColumns.betC && <td className="px-6 py-5 text-white/90 text-sm font-medium" style={{ fontFamily: 'JetBrains Mono, monospace' }}>R$ {(op.betC || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
                       {visibleColumns.total && <td className="px-6 py-5 text-white text-sm font-bold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>R$ {metrics.totalBet.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
                       {visibleColumns.profitA && (
                         <td className={`px-6 py-5 text-sm font-bold ${metrics.profitA >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
@@ -654,12 +724,17 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                           R$ {metrics.profitB.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
                       )}
+                      {visibleColumns.profitC && (
+                        <td className={`px-6 py-5 text-sm font-bold ${metrics.profitC >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                          R$ {metrics.profitC.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      )}
                       {visibleColumns.winner && (
                         <td className="px-6 py-5">
                           <button
                             onClick={() => {
                               if (isUpdatingWinner) return;
-                              const nextWinner = op.winner === '' ? 'A' : op.winner === 'A' ? 'B' : '';
+                              const nextWinner = op.winner === '' ? 'A' : op.winner === 'A' ? 'B' : op.winner === 'B' ? (op.houseC ? 'C' : '') : '';
                               handleUpdateWinner(op.id, nextWinner);
                             }}
                             className="group/winner relative"
@@ -672,10 +747,12 @@ export default function OperationsTable({ data, updateData, authFetch }: Operati
                               </div>
                             ) : op.winner ? (
                               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                op.winner === 'A' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 hover:bg-blue-500/20' : 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20 hover:bg-purple-500/20'
+                                op.winner === 'A' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 hover:bg-blue-500/20' : 
+                                op.winner === 'B' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20 hover:bg-purple-500/20' :
+                                'bg-pink-500/10 text-pink-400 ring-1 ring-pink-500/20 hover:bg-pink-500/20'
                               }`}>
                                 <Check className="w-3 h-3" />
-                                {op.winner === 'A' ? op.houseA : op.houseB}
+                                {op.winner === 'A' ? op.houseA : op.winner === 'B' ? op.houseB : op.houseC}
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest ring-1 ring-slate-500/20 hover:bg-slate-500/20 hover:text-slate-400 transition-all">
